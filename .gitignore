@@ -1,0 +1,6 @@
+server/__pycache__
+server/client.py
+server/server.py
+server/server2.py
+server/server3.py
+server/*.pyc
