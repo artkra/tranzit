@@ -3,4 +3,6 @@ server/client.py
 server/server.py
 server/server2.py
 server/server3.py
+server/server4.py
 server/*.pyc
+.idea/*
