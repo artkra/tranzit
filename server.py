@@ -56,10 +56,34 @@ class WebSocketServer():
         writer = self.clients[client_id]['writer']
 #todo: decode/encode messages, create API class for handling messages
         while True:
-            data = await reader.read(1024)
+            data = await reader.read(32768)
+
+            type, msg = WebSocketServer.decode_msg(data)
+
             print(data)
             await asyncio.sleep(0.1)
             print('NEW COROUTINE TO SERVE WEBSOCKET')
+
+    @staticmethod
+    def decode_msg(msg):
+        byte_data = bytearray(msg)
+        b1 = byte_data[0]
+        b2 = byte_data[1]
+        fin = b1 & FIN
+        opcode = b1 & OPCODE
+        masked = b2 & MASKED
+        payload_length = b2 & PAYLOAD_LEN
+
+        masks = byte_data[2:6]
+
+        decoded = ''
+
+        for i in range(payload_length):
+            char = byte_data[6 + i]
+            char ^= masks[len(decoded) % 4]
+            decoded += chr(char)
+
+        return 'text', decoded
 
     @staticmethod
     def handshake(message):

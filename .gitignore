@@ -1,8 +1,8 @@
-server/__pycache__
-server/client.py
-server/server.py
-server/server2.py
-server/server3.py
-server/server4.py
-server/*.pyc
+__pycache__
+client.py
+server1.py
+server2.py
+server3.py
+server4.py
+*.pyc
 .idea/*
