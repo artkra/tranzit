@@ -1,4 +1,5 @@
 import re
+import struct
 import asyncio
 from hashlib import sha1
 from base64 import b64encode
@@ -56,34 +57,61 @@ class WebSocketServer():
         writer = self.clients[client_id]['writer']
 #todo: decode/encode messages, create API class for handling messages
         while True:
-            data = await reader.read(32768)
+            b1, b2 = await reader.read(2)
+            fin = b1 & FIN
+            opcode = b1 & FIN
+            masked = b2 & MASKED
+            payload_length = b2 & PAYLOAD_LEN
 
-            type, msg = WebSocketServer.decode_msg(data)
+            buffered_msg = ''
 
-            print(data)
-            await asyncio.sleep(0.1)
-            print('NEW COROUTINE TO SERVE WEBSOCKET')
+            if payload_length == 126:
+                b3 = await reader.read(2)
+                payload_length = struct.unpack('>H', b3)[0]
+            if payload_length == 127:
+                b3 = await reader.read(8)
+                payload_length = struct.unpack('>Q', b3)[0]
 
-    @staticmethod
-    def decode_msg(msg):
-        byte_data = bytearray(msg)
-        b1 = byte_data[0]
-        b2 = byte_data[1]
-        fin = b1 & FIN
-        opcode = b1 & OPCODE
-        masked = b2 & MASKED
-        payload_length = b2 & PAYLOAD_LEN
+            if not b1:
+                # connection closed, close this
+                writer.close()
+                return
+            if opcode == OPCODE_CLOSE_CONN:
+                # client asked to close connection, close this
+                writer.close()
+                return
+            if not masked:
+                # not allowed, close this
+                writer.close()
+                return
+            if opcode == OPCODE_CONTINUATION:
+                # handle buffering
+                pass
+            elif opcode == OPCODE_BINARY:
+                # handle binary data
+                pass
+            elif opcode == OPCODE_TEXT:
+                # handle text
+                pass
+            elif opcode == OPCODE_PING:
+                # handle ping
+                pass
+            elif opcode == OPCODE_PONG:
+                # handle pong
+                pass
+            else:
+                # unknown, close this
+                return
 
-        masks = byte_data[2:6]
+            masks = await reader.read(4)
 
-        decoded = ''
+            decoded = ''
 
-        for i in range(payload_length):
-            char = byte_data[6 + i]
-            char ^= masks[len(decoded) % 4]
-            decoded += chr(char)
+            msg = await reader.read(payload_length)
 
-        return 'text', decoded
+            for char in msg:
+                char ^= masks[len(decoded) % 4]
+                decoded += chr(char)
 
     @staticmethod
     def handshake(message):
