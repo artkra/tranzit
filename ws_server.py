@@ -20,12 +20,26 @@ OPCODE_PING         = 0x9
 OPCODE_PONG         = 0xA
 
 
+class WebSocketHandler():
+    @staticmethod
+    def handle_text(writer, msg):
+        pass
+
+    @staticmethod
+    def handle_binary(writer, msg):
+        pass
+
+    @staticmethod
+    def handle_buffered(reader, writer, msg):
+        pass
+
 class WebSocketServer():
-    def __init__(self, host, port):
+    def __init__(self, host, port, api=WebSocketHandler):
         self.loop = asyncio.get_event_loop()
         self.host = str(host)
         self.port = int(port)
         self.clients = dict()
+        self.API = api
 
     async def handle(self, reader, writer):
         addr = writer.get_extra_info('peername')
@@ -50,12 +64,20 @@ class WebSocketServer():
             writer.write(handshake_msg.encode())
             await writer.drain()
 
-            self.loop.create_task(self.serve_wsocket(client_id))
+            fut = asyncio.Future()
 
-    async def serve_wsocket(self, client_id):
+            asyncio.ensure_future(self.serve_wsocket(fut, client_id), loop=self.loop)
+
+            try:
+                res = await asyncio.wait_for(fut, timeout=3600)
+            except asyncio.TimeoutError as e:
+                writer.close()
+                self.clients.pop(client_id)
+
+    async def serve_wsocket(self, fut, client_id):
         reader = self.clients[client_id]['reader']
         writer = self.clients[client_id]['writer']
-#todo: decode/encode messages, create API class for handling messages
+
         while True:
             b1, b2 = await reader.read(2)
             fin = b1 & FIN
@@ -72,37 +94,6 @@ class WebSocketServer():
                 b3 = await reader.read(8)
                 payload_length = struct.unpack('>Q', b3)[0]
 
-            if not b1:
-                # connection closed, close this
-                writer.close()
-                return
-            if opcode == OPCODE_CLOSE_CONN:
-                # client asked to close connection, close this
-                writer.close()
-                return
-            if not masked:
-                # not allowed, close this
-                writer.close()
-                return
-            if opcode == OPCODE_CONTINUATION:
-                # handle buffering
-                pass
-            elif opcode == OPCODE_BINARY:
-                # handle binary data
-                pass
-            elif opcode == OPCODE_TEXT:
-                # handle text
-                pass
-            elif opcode == OPCODE_PING:
-                # handle ping
-                pass
-            elif opcode == OPCODE_PONG:
-                # handle pong
-                pass
-            else:
-                # unknown, close this
-                return
-
             masks = await reader.read(4)
 
             decoded = ''
@@ -112,6 +103,33 @@ class WebSocketServer():
             for char in msg:
                 char ^= masks[len(decoded) % 4]
                 decoded += chr(char)
+
+            print(decoded)
+
+            if opcode == OPCODE_CLOSE_CONN:
+                # client asked to close connection, close this
+                writer.close()
+                fut.set_result(0)
+            if not masked:
+                # not allowed, close this
+                writer.close()
+                fut.set_result(0)
+            if opcode == OPCODE_CONTINUATION:
+                # handle buffering
+                self.API.handle_buffered(reader, writer, decoded)
+                
+            elif opcode == OPCODE_BINARY:
+                # handle binary data
+                self.API.handle_binary(writer, decoded)
+
+            elif opcode == OPCODE_TEXT:
+                # handle text
+                self.API.handle_text(writer, decoded)
+
+            elif opcode == OPCODE_PONG:
+                pass
+
+
 
     @staticmethod
     def handshake(message):
@@ -151,5 +169,5 @@ class WebSocketServer():
 
 
 if __name__ == '__main__':
-    wsserver = WebSocketServer('127.0.0.1', 3000)
+    wsserver = WebSocketServer('0.0.0.0', 3000)
     wsserver.run_forever()
