@@ -33,6 +33,7 @@ class WebSocketHandler():
     def handle_buffered(reader, writer, msg):
         pass
 
+
 class WebSocketServer():
     def __init__(self, host, port, api=WebSocketHandler):
         self.loop = asyncio.get_event_loop()
@@ -117,7 +118,7 @@ class WebSocketServer():
             if opcode == OPCODE_CONTINUATION:
                 # handle buffering
                 self.API.handle_buffered(reader, writer, decoded)
-                
+
             elif opcode == OPCODE_BINARY:
                 # handle binary data
                 self.API.handle_binary(writer, decoded)
@@ -128,8 +129,6 @@ class WebSocketServer():
 
             elif opcode == OPCODE_PONG:
                 pass
-
-
 
     @staticmethod
     def handshake(message):
