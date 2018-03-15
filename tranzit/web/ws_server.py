@@ -1,4 +1,5 @@
 import re
+import json
 import struct
 import asyncio
 from hashlib import sha1
@@ -20,22 +21,39 @@ OPCODE_PING         = 0x9
 OPCODE_PONG         = 0xA
 
 
-class WebSocketHandler():
-    @staticmethod
-    def handle_text(writer, msg):
+class WebSocketHandler(object):
+    def __init__(self, rules={}):
+        self.rules = rules
+
+    async def handle_text(self, writer, msg):
+        try:
+            body = msg.split('|')
+            func = body[0]
+            params = body[1].split(',')
+        except IndexError as e:
+            # wrong message format
+            print('wrong message format: {}'.format(msg))
+            return
+
+        if self.rules:
+            response = self.rules[func](params)
+            if isinstance(response, (str, int, float)):
+                response = func + '|' + str(response)
+            else:
+                response = func + '|' + json.dumps(response)
+            await WebSocketServer.send_text(writer, response)
+        else:
+            await WebSocketServer.send_text(writer, msg)
+
+    async def handle_binary(self, writer, msg):
         pass
 
-    @staticmethod
-    def handle_binary(writer, msg):
-        pass
-
-    @staticmethod
-    def handle_buffered(reader, writer, msg):
+    async def handle_buffered(self, reader, writer, first_msg):
         pass
 
 
-class WebSocketServer():
-    def __init__(self, host, port, api=WebSocketHandler):
+class WebSocketServer(object):
+    def __init__(self, host, port, api=WebSocketHandler()):
         self.loop = asyncio.get_event_loop()
         self.host = str(host)
         self.port = int(port)
@@ -48,14 +66,13 @@ class WebSocketServer():
 
         if client_id not in self.clients.keys():
             self.clients[client_id] = {
-                'alive': True,
                 'handshaken': False,
                 'addr': addr,
                 'writer': writer,
                 'reader': reader
             }
 
-        data = await reader.read(32768)
+        data = await reader.read(1024)
         message = data.decode()
             
         handshake_msg = WebSocketServer.handshake(message)
@@ -82,7 +99,7 @@ class WebSocketServer():
         while True:
             b1, b2 = await reader.read(2)
             fin = b1 & FIN
-            opcode = b1 & FIN
+            opcode = b1 & OPCODE
             masked = b2 & MASKED
             payload_length = b2 & PAYLOAD_LEN
 
@@ -105,8 +122,6 @@ class WebSocketServer():
                 char ^= masks[len(decoded) % 4]
                 decoded += chr(char)
 
-            print(decoded)
-
             if opcode == OPCODE_CLOSE_CONN:
                 # client asked to close connection, close this
                 writer.close()
@@ -117,18 +132,44 @@ class WebSocketServer():
                 fut.set_result(0)
             if opcode == OPCODE_CONTINUATION:
                 # handle buffering
-                self.API.handle_buffered(reader, writer, decoded)
+                await self.API.handle_buffered(reader, writer, decoded)
 
             elif opcode == OPCODE_BINARY:
                 # handle binary data
-                self.API.handle_binary(writer, decoded)
+                await self.API.handle_binary(writer, decoded)
 
             elif opcode == OPCODE_TEXT:
                 # handle text
-                self.API.handle_text(writer, decoded)
+                await self.API.handle_text(writer, decoded)
 
             elif opcode == OPCODE_PONG:
                 pass
+
+    @staticmethod
+    async def send_text(writer, msg):
+        header = bytearray()
+        payload = msg.encode('utf-8')
+        payload_length = len(payload)
+
+        if payload_length <= 125:
+            header.append(FIN | OPCODE_TEXT)
+            header.append(payload_length)
+
+        elif payload_length >= 126 and payload_length <= 65535:
+            header.append(FIN | OPCODE_TEXT)
+            header.append(PAYLOAD_LEN_EXT16)
+            header.extend(struct.pack(">H", payload_length))
+
+        elif payload_length < 18446744073709551616:
+            header.append(FIN | OPCODE_TEXT)
+            header.append(PAYLOAD_LEN_EXT64)
+            header.extend(struct.pack(">Q", payload_length))
+
+        else:
+            print('Too big message')
+            return
+
+        writer.write(header + payload)
 
     @staticmethod
     def handshake(message):

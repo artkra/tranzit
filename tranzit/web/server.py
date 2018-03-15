@@ -17,6 +17,7 @@ class Server():
 
     def run_server(self):
         # collect routes
+        # build dictionary of ws rules
         # build injection files
         # set WebSocketServer instance
         # start ws server
