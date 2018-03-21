@@ -1,1 +1,1 @@
-from .cli import new_project
+from tranzit.cli import new_project

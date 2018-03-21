@@ -21,7 +21,7 @@ OPCODE_PING         = 0x9
 OPCODE_PONG         = 0xA
 
 
-class WebSocketHandler(object):
+class TranzitWSHandler(object):
     def __init__(self, rules={}):
         self.rules = rules
 
@@ -33,7 +33,6 @@ class WebSocketHandler(object):
         except IndexError as e:
             # wrong message format
             print('wrong message format: {}'.format(msg))
-            return
 
         if self.rules:
             response = self.rules[func](params)
@@ -53,9 +52,9 @@ class WebSocketHandler(object):
 
 
 class WebSocketServer(object):
-    def __init__(self, host, port, api=WebSocketHandler()):
+    def __init__(self, host='0.0.0.0', port=19719, api=TranzitWSHandler()):
         self.loop = asyncio.get_event_loop()
-        self.host = str(host)
+        self.host = host
         self.port = int(port)
         self.clients = dict()
         self.API = api
@@ -72,7 +71,7 @@ class WebSocketServer(object):
                 'reader': reader
             }
 
-        data = await reader.read(1024)
+        data = await reader.read(2048)
         message = data.decode()
             
         handshake_msg = WebSocketServer.handshake(message)
@@ -140,7 +139,8 @@ class WebSocketServer(object):
 
             elif opcode == OPCODE_TEXT:
                 # handle text
-                await self.API.handle_text(writer, decoded)
+                # await self.API.handle_text(writer, decoded)
+                await WebSocketServer.send_text(writer, 'hello')
 
             elif opcode == OPCODE_PONG:
                 pass
@@ -209,5 +209,5 @@ class WebSocketServer(object):
 
 
 if __name__ == '__main__':
-    wsserver = WebSocketServer('0.0.0.0', 3000)
+    wsserver = WebSocketServer('0.0.0.0', 3333)
     wsserver.run_forever()
