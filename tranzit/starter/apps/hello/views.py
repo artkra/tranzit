@@ -1,5 +1,6 @@
 from aiohttp import web
 
+
 class IndexHandle(web.View):
     async def get(self):
         return 'HELLO'

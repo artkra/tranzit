@@ -1,11 +1,12 @@
 import yaml
+from importlib.util import spec_from_file_location, module_from_spec
 from aiohttp import web
 
 from tranzit.web.ws_server import WebSocketServer, TranzitWSHandler
 
 
 class Server(object):
-    def __init__(self, config_file):
+    def __init__(self, config_file, PROJECT_DIR):
         try:
             self.config = yaml.load(open(config_file).read())
             self.http_host = self.config['http_host']
@@ -14,6 +15,7 @@ class Server(object):
             self.ws_port = self.config['ws_port']
             self.production = self.config['production']
             self.apps = self.config['apps']
+            self.PROJECT_DIR = PROJECT_DIR
 
         except Exception:
             print('Error parsing config file.')
@@ -26,10 +28,11 @@ class Server(object):
         # start ws server
         # start http server
 
-        # for app in self.apps:
-        #     exec('from .' + app + '.routes import routes')
-
-
+        for app in self.apps:
+            spec = spec_from_file_location(app, self.PROJECT_DIR + '/apps/' + app + '/routes.py')
+            module = module_from_spec(spec)
+            spec.loader.exec_module(module)
+            # add CBV for all apps
 
         app = web.Application()
         print("""
