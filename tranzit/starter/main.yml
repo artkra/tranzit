@@ -2,6 +2,8 @@ http_host:
   '0.0.0.0'
 http_port:
   3000
+ws_server_on:
+  True
 ws_host:
   '0.0.0.0'
 ws_port:

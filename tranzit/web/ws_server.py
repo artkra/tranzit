@@ -139,8 +139,7 @@ class WebSocketServer(object):
 
             elif opcode == OPCODE_TEXT:
                 # handle text
-                # await self.API.handle_text(writer, decoded)
-                await WebSocketServer.send_text(writer, 'hello')
+                await self.API.handle_text(writer, decoded)
 
             elif opcode == OPCODE_PONG:
                 pass
