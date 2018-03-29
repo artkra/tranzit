@@ -33,14 +33,21 @@ class TranzitWSHandler(object):
         except IndexError as e:
             # wrong message format
             print('wrong message format: {}'.format(msg))
+        except Exception as e:
+            print('Error in WS message: {} - {}'.format(msg, str(e)))
 
-        if self.rules:
-            response = self.rules[func](params)
-            if isinstance(response, (str, int, float)):
-                response = func + '|' + str(response)
-            else:
-                response = func + '|' + json.dumps(response)
-            await WebSocketServer.send_text(writer, response)
+        if func in self.rules:
+            try:
+                response = self.rules[func](*params)
+
+                if isinstance(response, (str, int, float)):
+                    response = func + '|' + str(response)
+                else:
+                    response = func + '|' + json.dumps(response)
+                await WebSocketServer.send_text(writer, response)
+            except Exception as e:
+                print('Error in WS rule \'{}\': {}'.format(func, str(e)))
+
         else:
             await WebSocketServer.send_text(writer, msg)
 
@@ -208,5 +215,5 @@ class WebSocketServer(object):
 
 
 if __name__ == '__main__':
-    wsserver = WebSocketServer('0.0.0.0', 3333)
-    wsserver.run_forever()
+    ws_server = WebSocketServer('0.0.0.0', 3333)
+    ws_server.run_forever()
