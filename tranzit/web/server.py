@@ -6,7 +6,7 @@ from aiohttp import web
 from tranzit.web.ws_server import WebSocketServer, TranzitWSHandler
 
 
-class Server(object):
+class MainServer(object):
     def __init__(self, config_file, PROJECT_DIR):
         try:
             self.config = yaml.load(open(config_file).read())
@@ -26,9 +26,6 @@ class Server(object):
         # collect routes
         # build dictionary of ws rules
         # build injection files
-        # set WebSocketServer instance
-        # start ws server
-        # start http server
 
         main_t = Process(target=self.start_main_server)
         main_t.start()
@@ -38,13 +35,27 @@ class Server(object):
             ws_t.start()
 
     def start_main_server(self):
-        for app in self.apps:
-            spec = spec_from_file_location(app, self.PROJECT_DIR + '/apps/' + app + '/routes.py')
-            module = module_from_spec(spec)
-            spec.loader.exec_module(module)
-            # add CBV for all apps
-
         server = web.Application()
+
+        for app in self.apps:
+            try:
+                spec = spec_from_file_location(app, self.PROJECT_DIR + '/apps/' + app + '/routes.py')
+                module = module_from_spec(spec)
+                spec.loader.exec_module(module)
+
+                prefix = module.PATH_PREFIX
+                routes = module.routes
+
+                for route in routes:
+                    server.router.add_route('GET', prefix + route, routes[route]().get)
+                    server.router.add_route('POST', prefix + route, routes[route]().post)
+                    server.router.add_route('PUT', prefix + route, routes[route]().put)
+                    server.router.add_route('DELETE', prefix + route, routes[route]().delete)
+
+            except Exception as e:
+                raise(e)
+                print('Couldn\'t load app: {}'.format(app))
+
         print("""
         \033[95m         
         TRANZIT STARTING ....
@@ -86,5 +97,24 @@ class Server(object):
         web.run_app(server, host=self.http_host, port=self.http_port, print=False)
 
     def start_ws_server(self):
-        wsserver = WebSocketServer(host=self.ws_host, port=self.ws_port)
+        wsserver = WebSocketServer(
+            host=self.ws_host,
+            port=self.ws_port,
+            api=TranzitWSHandler(rules={})
+        )
         wsserver.run_forever()
+
+
+class TZView(object):
+
+    async def get(self, request):
+        return web.Response(text='')
+
+    async def post(self, request):
+        return web.Response(text='')
+
+    async def put(self, request):
+        return web.Response(text='')
+
+    async def delete(self, request):
+        return web.Response(text='')

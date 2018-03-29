@@ -1,15 +1,7 @@
-from aiohttp import web
+from tranzit import web
 
 
-class IndexHandle(web.View):
-    async def get(self):
-        return 'HELLO'
+class IndexHandle(web.TZView):
 
-    async def post(self):
-        pass
-
-    async def put(self):
-        pass
-
-    async def delete(self):
-        pass
+    async def get(self, request):
+        return web.Response(text='GET!')
