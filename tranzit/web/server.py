@@ -111,7 +111,7 @@ class MainServer(object):
                 prefix = module.PATH_PREFIX
                 ws_rules = module.ws_rules
 
-                self.ws_rules[prefix] = ws_rules['pull']
+                self.ws_rules = {**self.ws_rules, **ws_rules}
 
             except Exception as e:
                 print(str(e))
@@ -120,7 +120,7 @@ class MainServer(object):
         self.ws_server = WebSocketServer(
             host=self.ws_host,
             port=self.ws_port,
-            api=TranzitWSHandler(rules=ws_rules['pull'])
+            api=TranzitWSHandler(rules=self.ws_rules)
         )
 
         self.ws_server.run_forever()

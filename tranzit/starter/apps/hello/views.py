@@ -11,14 +11,12 @@ class IndexHandle(web.TZView):
 class WSPullHandle(object):
 
     @staticmethod
-    def get_page(addr, *args, **kwargs):
+    async def get_page(addr, *args, **kwargs):
         res = urllib.request.urlopen(addr).read(3000).decode('utf-8')
 
         return res
 
-
-class WSPushHandle(object):
-
     @staticmethod
-    def push_data(*args, **kwargs):
-        pass
+    async def get_hello(*args, **kwargs):
+
+        return 'HELLO!'

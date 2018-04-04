@@ -2,6 +2,7 @@ import re
 import json
 import struct
 import asyncio
+from threading import Thread
 from hashlib import sha1
 from base64 import b64encode
 
@@ -38,7 +39,7 @@ class TranzitWSHandler(object):
 
         if func in self.rules:
             try:
-                response = self.rules[func](*params)
+                response = await self.rules[func](*params)
 
                 if isinstance(response, (str, int, float)):
                     response = func + '|' + str(response)

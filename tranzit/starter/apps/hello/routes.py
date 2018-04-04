@@ -7,10 +7,6 @@ routes = {
 }
 
 ws_rules = {
-    'push': {
-        'notify': WSPushHandle.push_data
-    },
-    'pull': {
-        'get_page': WSPullHandle.get_page
-    }
+    'get_page': WSPullHandle.get_page,
+    'get_hello': WSPullHandle.get_hello
 }
