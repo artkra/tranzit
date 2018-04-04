@@ -2,7 +2,6 @@ import re
 import json
 import struct
 import asyncio
-from threading import Thread
 from hashlib import sha1
 from base64 import b64encode
 
@@ -26,7 +25,7 @@ class TranzitWSHandler(object):
     def __init__(self, rules={}):
         self.rules = rules
 
-    async def handle_text(self, writer, msg):
+    async def handle_text(self, loop, writer, msg):
         try:
             body = msg.split('|')
             func = body[0]
@@ -41,6 +40,8 @@ class TranzitWSHandler(object):
             try:
                 response = await self.rules[func](*params)
 
+                asyncio.ensure_future(TranzitWSHandler._dummy(), loop=loop)
+
                 if isinstance(response, (str, int, float)):
                     response = func + '|' + str(response)
                 else:
@@ -52,10 +53,16 @@ class TranzitWSHandler(object):
         else:
             await WebSocketServer.send_text(writer, msg)
 
-    async def handle_binary(self, writer, msg):
+    @staticmethod
+    async def _dummy():
+        while True:
+            await asyncio.sleep(1)
+            print('DUMMY!')
+
+    async def handle_binary(self, loop, writer, msg):
         pass
 
-    async def handle_buffered(self, reader, writer, first_msg):
+    async def handle_buffered(self, loop, reader, writer, first_msg):
         pass
 
 
@@ -139,15 +146,15 @@ class WebSocketServer(object):
                 fut.set_result(0)
             if opcode == OPCODE_CONTINUATION:
                 # handle buffering
-                await self.API.handle_buffered(reader, writer, decoded)
+                await self.API.handle_buffered(self.loop, reader, writer, decoded)
 
             elif opcode == OPCODE_BINARY:
                 # handle binary data
-                await self.API.handle_binary(writer, decoded)
+                await self.API.handle_binary(self.loop, writer, decoded)
 
             elif opcode == OPCODE_TEXT:
                 # handle text
-                await self.API.handle_text(writer, decoded)
+                await self.API.handle_text(self.loop, writer, decoded)
 
             elif opcode == OPCODE_PONG:
                 pass
