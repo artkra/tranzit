@@ -8,5 +8,5 @@ routes = {
 
 ws_rules = {
     'get_page': WSPullHandle.get_page,
-    'get_hello': WSPullHandle.get_hello
+    'get_hello': WSPushHandle.get_hello
 }

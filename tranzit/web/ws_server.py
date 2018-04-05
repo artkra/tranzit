@@ -1,9 +1,20 @@
 import re
-import json
+import sys
 import struct
 import asyncio
 from hashlib import sha1
 from base64 import b64encode
+
+
+class DevNull(object):
+    def write(self, data):
+        pass
+
+    def flush(self):
+        pass
+
+
+sys.stderr = DevNull()
 
 
 FIN                 = 0x80
@@ -38,26 +49,16 @@ class TranzitWSHandler(object):
 
         if func in self.rules:
             try:
-                response = await self.rules[func](*params)
+                asyncio.ensure_future(
+                    self.rules[func](*params, send_func=WebSocketServer.send_text, writer=writer),
+                    loop=loop
+                )
 
-                asyncio.ensure_future(TranzitWSHandler._dummy(), loop=loop)
-
-                if isinstance(response, (str, int, float)):
-                    response = func + '|' + str(response)
-                else:
-                    response = func + '|' + json.dumps(response)
-                await WebSocketServer.send_text(writer, response)
             except Exception as e:
                 print('Error in WS rule \'{}\': {}'.format(func, str(e)))
 
         else:
             await WebSocketServer.send_text(writer, msg)
-
-    @staticmethod
-    async def _dummy():
-        while True:
-            await asyncio.sleep(1)
-            print('DUMMY!')
 
     async def handle_binary(self, loop, writer, msg):
         pass
@@ -110,54 +111,59 @@ class WebSocketServer(object):
         reader = self.clients[client_id]['reader']
         writer = self.clients[client_id]['writer']
 
-        while True:
-            b1, b2 = await reader.read(2)
-            fin = b1 & FIN
-            opcode = b1 & OPCODE
-            masked = b2 & MASKED
-            payload_length = b2 & PAYLOAD_LEN
+        try:
+            while True:
+                b1, b2 = await reader.read(2)
+                fin = b1 & FIN
+                opcode = b1 & OPCODE
+                masked = b2 & MASKED
+                payload_length = b2 & PAYLOAD_LEN
 
-            buffered_msg = ''
+                buffered_msg = ''
 
-            if payload_length == 126:
-                b3 = await reader.read(2)
-                payload_length = struct.unpack('>H', b3)[0]
-            if payload_length == 127:
-                b3 = await reader.read(8)
-                payload_length = struct.unpack('>Q', b3)[0]
+                if payload_length == 126:
+                    b3 = await reader.read(2)
+                    payload_length = struct.unpack('>H', b3)[0]
+                if payload_length == 127:
+                    b3 = await reader.read(8)
+                    payload_length = struct.unpack('>Q', b3)[0]
 
-            masks = await reader.read(4)
+                masks = await reader.read(4)
 
-            decoded = ''
+                decoded = ''
 
-            msg = await reader.read(payload_length)
+                msg = await reader.read(payload_length)
 
-            for char in msg:
-                char ^= masks[len(decoded) % 4]
-                decoded += chr(char)
+                for char in msg:
+                    char ^= masks[len(decoded) % 4]
+                    decoded += chr(char)
 
-            if opcode == OPCODE_CLOSE_CONN:
-                # client asked to close connection, close this
-                writer.close()
-                fut.set_result(0)
-            if not masked:
-                # not allowed, close this
-                writer.close()
-                fut.set_result(0)
-            if opcode == OPCODE_CONTINUATION:
-                # handle buffering
-                await self.API.handle_buffered(self.loop, reader, writer, decoded)
+                if opcode == OPCODE_CLOSE_CONN:
+                    # client asked to close connection, close this
+                    writer.close()
+                    fut.set_result(0)
+                if not masked:
+                    # not allowed, close this
+                    writer.close()
+                    fut.set_result(0)
+                if opcode == OPCODE_CONTINUATION:
+                    # handle buffering
+                    await self.API.handle_buffered(self.loop, reader, writer, decoded)
 
-            elif opcode == OPCODE_BINARY:
-                # handle binary data
-                await self.API.handle_binary(self.loop, writer, decoded)
+                elif opcode == OPCODE_BINARY:
+                    # handle binary data
+                    await self.API.handle_binary(self.loop, writer, decoded)
 
-            elif opcode == OPCODE_TEXT:
-                # handle text
-                await self.API.handle_text(self.loop, writer, decoded)
+                elif opcode == OPCODE_TEXT:
+                    # handle text
+                    await self.API.handle_text(self.loop, writer, decoded)
 
-            elif opcode == OPCODE_PONG:
-                pass
+                elif opcode == OPCODE_PONG:
+                    pass
+        except Exception as e:
+            print(str(e))
+            writer.close()
+            self.clients.pop(client_id)
 
     @staticmethod
     async def send_text(writer, msg):
