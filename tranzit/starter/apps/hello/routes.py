@@ -1,6 +1,9 @@
+import os
 from tranzit.starter.apps.hello.views import *
 
 PATH_PREFIX = ''
+
+APP_STATIC_DIR = os.path.dirname(__file__) + '/static/'
 
 routes = {
     '/': IndexHandle

@@ -41,12 +41,16 @@ class MainServer(object):
 
         for app in self.apps:
             try:
-                spec = spec_from_file_location(app, self.PROJECT_DIR + '/apps/' + app + '/routes.py')
+                app_dir = self.PROJECT_DIR + '/apps/' + app
+                spec = spec_from_file_location(app, app_dir + '/routes.py')
                 module = module_from_spec(spec)
                 spec.loader.exec_module(module)
 
                 prefix = module.PATH_PREFIX
+                app_static_dir = module.APP_STATIC_DIR
                 routes = module.routes
+
+                self.main_server.router.add_static('/static/', app_static_dir, name='static')
 
                 for route in routes:
                     self.main_server.router.add_route('GET', prefix + route, routes[route]().get)
