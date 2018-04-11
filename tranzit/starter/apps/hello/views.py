@@ -1,12 +1,19 @@
 import urllib
+import time
 import asyncio
+from aiohttp_session import get_session
 from tranzit import web
 
 
 class IndexHandle(web.TZView):
 
     async def get(self, request):
-        return web.Response(text='GET!')
+
+        session = await get_session(request)
+        last_visit = session['last_visit'] if 'last_visit' in session else None
+        session['last_visit'] = time.time()
+
+        return web.Response(text='Last visit: {}'.format(last_visit))
 
 
 class WSPullHandle(object):

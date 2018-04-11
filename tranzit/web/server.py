@@ -1,7 +1,11 @@
 import yaml
+import base64
+from cryptography import fernet
 from multiprocessing import Process
 from importlib.util import spec_from_file_location, module_from_spec
 from aiohttp import web
+from aiohttp_session import setup
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from tranzit.web.ws_server import WebSocketServer, TranzitWSHandler
 
@@ -38,6 +42,10 @@ class MainServer(object):
             ws_t.start()
 
     def start_main_server(self):
+
+        fernet_key = fernet.Fernet.generate_key()
+        secret_key = base64.urlsafe_b64decode(fernet_key)
+        setup(self.main_server, EncryptedCookieStorage(secret_key))
 
         for app in self.apps:
             try:
