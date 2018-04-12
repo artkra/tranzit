@@ -1,20 +1,8 @@
 import re
-import sys
 import struct
 import asyncio
 from hashlib import sha1
 from base64 import b64encode
-
-
-class DevNull(object):
-    def write(self, data):
-        pass
-
-    def flush(self):
-        pass
-
-
-sys.stderr = DevNull()
 
 
 FIN                 = 0x80
