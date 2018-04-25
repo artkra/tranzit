@@ -5,7 +5,7 @@ from cryptography import fernet
 from multiprocessing import Process
 from importlib.util import spec_from_file_location, module_from_spec
 from aiohttp import web
-from aiohttp_session import setup, get_session
+from aiohttp_session import setup
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from tranzit.web.ws_server import WebSocketServer, TranzitWSHandler
@@ -52,20 +52,17 @@ class MainServer(object):
             ws_t = Process(target=self.start_ws_server)
             ws_t.start()
 
-    @staticmethod
-    @web.middleware
-    async def request_session(request, handler):
-        session = await get_session(request)
-        request.session = session
-
-        return await handler(request)
-
     def start_main_server(self):
         fernet_key = fernet.Fernet.generate_key()
         secret_key = base64.urlsafe_b64decode(fernet_key)
         setup(self.main_server, EncryptedCookieStorage(secret_key))
 
-        self.main_server.middlewares.append(MainServer.request_session)
+        try:
+            self.main_server.router.add_static(
+                '/static/common/', self.PROJECT_DIR + '/common/static/'
+            )
+        except Exception as e:
+            print('ERROR CONFIGURING COMMON STATIC DIRECTORY. TZ.js anavailable :(')
 
         for app in self.apps:
             try:
@@ -78,7 +75,7 @@ class MainServer(object):
                 app_static_dir = module.APP_STATIC_DIR
                 routes = module.routes
 
-                self.main_server.router.add_static('/static/', app_static_dir, name='static')
+                self.main_server.router.add_static('/static/{}/'.format(app), app_static_dir)
 
                 for route in routes:
                     self.main_server.router.add_route('GET', prefix + route, routes[route]().get)

@@ -1,18 +1,18 @@
 import urllib
 import time
 import datetime
-import asyncio
+from aiohttp_session import get_session
 from tranzit import web
 
 
 class IndexHandle(web.TZView):
 
     async def get(self, request):
-
-        last_visit = request.session['last_visit'] if 'last_visit' in request.session else None
+        session =  await get_session(request)
+        last_visit = session['last_visit'] if 'last_visit' in session else None
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-        request.session['last_visit'] = dt
+        session['last_visit'] = dt
 
         return web.Response(text='Last visit: {}'.format(last_visit))
 
