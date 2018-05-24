@@ -167,3 +167,6 @@ class TZView(object):
 
     async def delete(self, request):
         return web.Response(text='')
+
+
+# TODO: TZresponse

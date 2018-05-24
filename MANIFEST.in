@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+include tranzit/starter/*
+include tranzit/starter/common/static/tz.js
+include tranzit/starter/apps/hello/*
+include tranzit/starter/apps/hello/static/*
