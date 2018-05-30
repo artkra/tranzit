@@ -9,8 +9,11 @@ In fact, <b>tranzit</b> is a just a tony wrapper for wonderful
 separately) and a little <i>CLI</i> tool.
  <!-- TODO: all the rest of README-->
 ## Installation
-
+    $ pip install tranzit
 ## Quickstart
+    $ tranzit project <PROJECT_NAME>
+    $ cd <PROJECT_NAME>
+    $ tranzit run
 
 ## Routing
 
@@ -21,6 +24,13 @@ separately) and a little <i>CLI</i> tool.
 ## Using aiohttp module
 
 ## Few words about websockets
+
+> <b>Warning:</b> <s>beware of yellow snow!</s> all websocket routes are
+in the same namespace! Avoid collisions.
+
+> <b>Another warning:</b> No security provided! Be sure to verify
+websocket request (e.g. pass user session key in WS view parameters)
+
 
 ## Starting websocket server separately
 

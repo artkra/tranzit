@@ -17,7 +17,7 @@ def cli_handler():
     This is a little TRANZIT cli tool.
 
     Usage:
-        $ tranzit project <project_name>  | creates a new tranzit project skeleton
+        $ tranzit project <PROJECT_NAME>  | creates a new tranzit project skeleton
         $ tranzit run                     | runs a project (must be in a project directory where main.py is)
 
         ''')
