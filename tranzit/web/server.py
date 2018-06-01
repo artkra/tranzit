@@ -20,7 +20,7 @@ class DevNull(object):
 
 
 class MainServer(object):
-    def __init__(self, config_file, PROJECT_DIR):
+    def __init__(self, config_file, PROJECT_DIR, middlewares=[]):
         try:
             self.config = yaml.load(open(config_file).read())
             self.http_host = self.config.get('http_host', '0.0.0.0')
