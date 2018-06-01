@@ -4,6 +4,12 @@ from os.path import join, dirname
 setup(
     name='tranzit',
     packages=['tranzit'],
+    install_requires=[
+        'aiohttp==2.3.10',
+        'aiohttp_session==2.2.0',
+        'pyyaml==3.12',
+        'cryptography==2.2.2'
+    ],
     version='0.1',
     description='asynchronous http web framework based on '
                 'aiohttp providing websocket server functionality',
