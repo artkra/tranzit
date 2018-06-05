@@ -73,6 +73,32 @@ Http views are ordinary **aiohttp** views.
 All websocket views are dispatched by *ws_rules* dict.
 See explanation below.
 
+## Middlewares
+
+You can pass a list of your middlewares in *main.py*:
+```python
+MainServer(
+    'server.yml', PROJECT_DIR, middlewares=[my_middleware]
+)
+```
+
+More on **aiohttp** middlewares [here](https://docs.aiohttp.org/en/stable/web_advanced.html#middlewares).
+
+## Staticfiles
+
+There are two types of static files directories in the project skeleton.
+
+The first is _**\<PROJECT_NAME>/common/static/**_ . It contains
+common project static files and is available via
+
+http://0.0.0.0:3000/static/common/YOUR_GLORIOUS.js
+
+The second type is app-specific:
+_**\<PROJECT_NAME>/apps/\<APP_NAME>/static**_ .
+As you may suggest, it can be found here:
+
+http://0.0.0.0:3000/static/APP_NAME/ANOTHER_GLORIOUS.js
+
 ## Few words about websockets
 
 To establish websocket messaging you must add websocket rule in
@@ -133,17 +159,6 @@ in the same namespace! Avoid collisions.
 > **Another warning:** No security provided! Be sure to verify
 websocket request (e.g. pass user session key in WS view parameters)
 
-
-## Middlewares
-
-> Will be implemented soon.
-
-Then you will be able to pass list of your middlewares in *main.py*:
-```python
-MainServer(
-    'server.yml', PROJECT_DIR, middlewares=[my_middleware]
-)
-```
 
 
 ## Using aiohttp module

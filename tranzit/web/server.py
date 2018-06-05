@@ -32,7 +32,7 @@ class MainServer(object):
             self.production = self.config.get('production', False)
             self.apps = self.config.get('apps', [])
             self.PROJECT_DIR = PROJECT_DIR
-            self.main_server = web.Application()
+            self.main_server = web.Application(middlewares=middlewares)
             self.ws_server = None
             self.camel = self.config.get('camel', True)
 
