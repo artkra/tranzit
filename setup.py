@@ -10,7 +10,7 @@ setup(
         'pyyaml==3.12',
         'cryptography==2.2.2'
     ],
-    version='0.1',
+    version='0.1.1',
     description='asynchronous http web framework based on '
                 'aiohttp providing websocket server functionality',
     keywords='async http web framework websocket server',

@@ -39,4 +39,4 @@ class WSPushHandle(object):
 
         while True:
             await asyncio.sleep(1)
-            await send_func(writer, 'HELLO!')
+            await send_func(writer, 'get_hello|HELLO!')
