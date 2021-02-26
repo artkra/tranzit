@@ -5,7 +5,7 @@ setup(
     name='tranzit',
     packages=['tranzit'],
     install_requires=[
-        'aiohttp==2.3.10',
+        'aiohttp==3.7.4',
         'aiohttp_session==2.2.0',
         'pyyaml==3.12',
         'cryptography==2.2.2'
